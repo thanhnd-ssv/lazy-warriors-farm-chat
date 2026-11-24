@@ -10,7 +10,7 @@
 ## Cài đặt
 
 1. Cài trình quản lý userscript (Tampermonkey trên desktop, hoặc **Userscripts** trên iPhone/Safari).
-2. Cài script từ [script.user.js](./script.user.js) (hoặc từ raw URL nếu bạn host project này trên GitHub).
+2. Cài script từ raw URL: [script.user.js (raw)](https://raw.githubusercontent.com/thanhnd-ssv/lazy-warriors-farm-chat/refs/heads/main/script.user.js) (hoặc mở trực tiếp file [script.user.js](./script.user.js) trong repo).
 3. Mở `https://at-sp.ssvhue.work/`, tải lại trang và nhấn **icon chat (💬)** để mở Guild Chat.
 
 ## Cấu hình Guild Chat (admin hội)
@@ -37,5 +37,5 @@
 
 ## Lưu ý
 
-- `script.user.js`/`script.meta.js` hiện tham chiếu `@require`, `@updateURL`, `@downloadURL` tới repo gốc (`thanhnd-ssv/lazy-warriors-farm`). Nếu tách thành repo/project riêng, hãy cập nhật các URL này và đồng bộ `@version` khi phát hành.
+- `script.user.js`/`script.meta.js` hiện tham chiếu `@require`, `@updateURL`, `@downloadURL` tới repo này (`thanhnd-ssv/lazy-warriors-farm-chat`). Khi phát hành bản mới, nhớ đồng bộ `@version` ở cả hai file.
 - Không đưa Service Account key hoặc thông tin quản trị vào userscript; quyền truy cập dữ liệu do Firebase Security Rules kiểm soát.

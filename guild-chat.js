@@ -1108,7 +1108,7 @@
         })
         .catch((error) => {
           console.error(
-            "[Web Workflow Utility] Guild Chat background failed.",
+            "[Lazy Warriors Farm Chat] Guild Chat background failed.",
             error,
           );
         });
@@ -1147,7 +1147,7 @@
         );
         return value === undefined ? fallback : value;
       } catch (error) {
-        console.error("[Web Workflow Utility] Guild Chat storage read failed.", error);
+        console.error("[Lazy Warriors Farm Chat] Guild Chat storage read failed.", error);
         throw error;
       }
     }
@@ -1160,7 +1160,7 @@
           "Lưu phiên chat quá thời gian chờ.",
         );
       } catch (error) {
-        console.error("[Web Workflow Utility] Guild Chat storage write failed.", error);
+        console.error("[Lazy Warriors Farm Chat] Guild Chat storage write failed.", error);
         throw error;
       }
     }
@@ -1397,7 +1397,7 @@
         typeof data.text !== "string" ||
         !Number.isFinite(data.createdAt)
       ) {
-        console.warn("[Web Workflow Utility] Ignored malformed Guild Chat message.", key);
+        console.warn("[Lazy Warriors Farm Chat] Ignored malformed Guild Chat message.", key);
         return;
       }
 
@@ -1516,7 +1516,7 @@
         connectionLabel.textContent = "Mất kết nối · sẽ thử lại...";
         setNotice(chatNotice, `Không tải được tin nhắn: ${error.message}`);
         if (lastMessagePollError !== error.message) {
-          console.error("[Web Workflow Utility] Guild Chat polling failed.", error);
+          console.error("[Lazy Warriors Farm Chat] Guild Chat polling failed.", error);
           lastMessagePollError = error.message;
         }
       }
@@ -1542,7 +1542,7 @@
         if (!chatView.hidden) {
           setNotice(chatNotice, `Làm mới chat thất bại: ${error.message}`);
         }
-        console.error("[Web Workflow Utility] Guild Chat refresh failed.", error);
+        console.error("[Lazy Warriors Farm Chat] Guild Chat refresh failed.", error);
       } finally {
         reloadButton.disabled = false;
         reloadButton.removeAttribute("aria-busy");
@@ -1674,7 +1674,7 @@
             `Không khôi phục được phiên chat: ${error.message}`,
           );
         }
-        console.error("[Web Workflow Utility] Guild Chat connection failed.", error);
+        console.error("[Lazy Warriors Farm Chat] Guild Chat connection failed.", error);
         throw error;
       });
       return connectionPromise;
@@ -1768,7 +1768,7 @@
         showChat(profile);
       } catch (error) {
         setNotice(joinNotice, `Không tham gia được: ${error.message}`);
-        console.error("[Web Workflow Utility] Guild Chat join failed.", error);
+        console.error("[Lazy Warriors Farm Chat] Guild Chat join failed.", error);
       } finally {
         joinButton.disabled = false;
       }
@@ -1810,7 +1810,7 @@
         messageInput.focus();
       } catch (error) {
         setNotice(chatNotice, `Gửi tin nhắn thất bại: ${error.message}`);
-        console.error("[Web Workflow Utility] Guild Chat send failed.", error);
+        console.error("[Lazy Warriors Farm Chat] Guild Chat send failed.", error);
       } finally {
         sendButton.disabled = false;
       }

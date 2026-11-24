@@ -1,12 +1,12 @@
 // ==UserScript==
-// @name         Web Workflow Utility
-// @namespace    local.at-sp.notification-monitor
-// @version      2.78.43
-// @description  Guild Chat for SSV Farm.
+// @name         Lazy Warriors Farm Chat
+// @namespace    local.lazy-warriors-farm-chat
+// @version      1.0
+// @description  Guild Chat userscript for SSV Farm.
 // @match        https://at-sp.ssvhue.work/*
-// @require      https://raw.githubusercontent.com/thanhnd-ssv/lazy-warriors-farm/refs/heads/main/guild-chat.js?v=2.78.43
-// @updateURL    https://raw.githubusercontent.com/thanhnd-ssv/lazy-warriors-farm/refs/heads/main/script.meta.js
-// @downloadURL  https://raw.githubusercontent.com/thanhnd-ssv/lazy-warriors-farm/refs/heads/main/script.user.js
+// @require      https://raw.githubusercontent.com/thanhnd-ssv/lazy-warriors-farm-chat/refs/heads/main/guild-chat.js?v=1.0
+// @updateURL    https://raw.githubusercontent.com/thanhnd-ssv/lazy-warriors-farm-chat/refs/heads/main/script.meta.js
+// @downloadURL  https://raw.githubusercontent.com/thanhnd-ssv/lazy-warriors-farm-chat/refs/heads/main/script.user.js
 // @run-at       document-idle
 // @grant        GM_xmlhttpRequest
 // @grant        GM_getValue
@@ -135,12 +135,12 @@
   })();
 
   if (!globalThis.GuildChatModule) {
-    console.error("[Web Workflow Utility] Guild Chat module did not load.");
+    console.error("[Lazy Warriors Farm Chat] Guild Chat module did not load.");
     return;
   }
 
   if (typeof gmRequest !== "function") {
-    console.error("[Web Workflow Utility] GM_xmlhttpRequest is unavailable.");
+    console.error("[Lazy Warriors Farm Chat] GM_xmlhttpRequest is unavailable.");
     return;
   }
 
@@ -150,11 +150,11 @@
       setValue: (key, value) => gmSetValue(key, value),
       request: (options) => gmRequest(options),
       updateUrl:
-        "https://raw.githubusercontent.com/thanhnd-ssv/lazy-warriors-farm/refs/heads/main/script.user.js",
+        "https://raw.githubusercontent.com/thanhnd-ssv/lazy-warriors-farm-chat/refs/heads/main/script.user.js",
     });
   } catch (error) {
     console.error(
-      "[Web Workflow Utility] Guild Chat module initialization failed.",
+      "[Lazy Warriors Farm Chat] Guild Chat module initialization failed.",
       error,
     );
   }

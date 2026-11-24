@@ -1,12 +1,12 @@
 // ==UserScript==
-// @name         Web Workflow Utility
-// @namespace    local.at-sp.notification-monitor
-// @version      2.78.43
-// @description  Guild Chat for SSV Farm.
+// @name         Lazy Warriors Farm Chat
+// @namespace    local.lazy-warriors-farm-chat
+// @version      1.0
+// @description  Guild Chat userscript for SSV Farm.
 // @match        https://at-sp.ssvhue.work/*
-// @require      https://raw.githubusercontent.com/thanhnd-ssv/lazy-warriors-farm/refs/heads/main/guild-chat.js?v=2.78.43
-// @updateURL    https://raw.githubusercontent.com/thanhnd-ssv/lazy-warriors-farm/refs/heads/main/script.meta.js
-// @downloadURL  https://raw.githubusercontent.com/thanhnd-ssv/lazy-warriors-farm/refs/heads/main/script.user.js
+// @require      https://raw.githubusercontent.com/thanhnd-ssv/lazy-warriors-farm-chat/refs/heads/main/guild-chat.js?v=1.0
+// @updateURL    https://raw.githubusercontent.com/thanhnd-ssv/lazy-warriors-farm-chat/refs/heads/main/script.meta.js
+// @downloadURL  https://raw.githubusercontent.com/thanhnd-ssv/lazy-warriors-farm-chat/refs/heads/main/script.user.js
 // @run-at       document-idle
 // @grant        GM_xmlhttpRequest
 // @grant        GM_getValue
