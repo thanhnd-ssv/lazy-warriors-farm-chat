@@ -16,7 +16,7 @@
   const CHAT_BACKGROUND_CHANGE_MINUTES = [60, 12 * 60, 17 * 60 + 30];
   const AUTH_STORAGE_KEY = "web-workflow-utility.guild-chat.auth";
   const PROFILE_STORAGE_KEY = "web-workflow-utility.guild-chat.profile";
-  const CHAT_TITLE = "😴 Lazy Farm 🌾";
+  const CHAT_TITLE = "🦊 Thâu Thiên Môn";
   const CHARACTER_AVATARS = [
     "👨‍🌾", "👩‍🌾", "🧑", "👩‍🍳", "👨", "👩", "👴",
     "👵", "👦", "👧", "👶", "🤡", "🧙", "🧛", "🧟", "👽", "🐷",
