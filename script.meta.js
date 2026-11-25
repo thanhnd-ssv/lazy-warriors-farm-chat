@@ -1,10 +1,10 @@
 // ==UserScript==
 // @name         Lazy Warriors Farm Chat
 // @namespace    local.lazy-warriors-farm-chat
-// @version      1.0
+// @version      1.2
 // @description  Guild Chat userscript for SSV Farm.
 // @match        https://at-sp.ssvhue.work/*
-// @require      https://raw.githubusercontent.com/thanhnd-ssv/lazy-warriors-farm-chat/refs/heads/main/guild-chat.js?v=1.0
+// @require      https://raw.githubusercontent.com/thanhnd-ssv/lazy-warriors-farm-chat/refs/heads/main/guild-chat.js?v=1.2
 // @updateURL    https://raw.githubusercontent.com/thanhnd-ssv/lazy-warriors-farm-chat/refs/heads/main/script.meta.js
 // @downloadURL  https://raw.githubusercontent.com/thanhnd-ssv/lazy-warriors-farm-chat/refs/heads/main/script.user.js
 // @run-at       document-idle

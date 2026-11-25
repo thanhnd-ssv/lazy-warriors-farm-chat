@@ -1,10 +1,10 @@
 // ==UserScript==
 // @name         Lazy Warriors Farm Chat
 // @namespace    local.lazy-warriors-farm-chat
-// @version      1.0
+// @version      1.2
 // @description  Guild Chat userscript for SSV Farm.
 // @match        https://at-sp.ssvhue.work/*
-// @require      https://raw.githubusercontent.com/thanhnd-ssv/lazy-warriors-farm-chat/refs/heads/main/guild-chat.js?v=1.0
+// @require      https://raw.githubusercontent.com/thanhnd-ssv/lazy-warriors-farm-chat/refs/heads/main/guild-chat.js?v=1.2
 // @updateURL    https://raw.githubusercontent.com/thanhnd-ssv/lazy-warriors-farm-chat/refs/heads/main/script.meta.js
 // @downloadURL  https://raw.githubusercontent.com/thanhnd-ssv/lazy-warriors-farm-chat/refs/heads/main/script.user.js
 // @run-at       document-idle
@@ -86,7 +86,27 @@
 
         if (details.responseType === "arraybuffer") {
           responseData = await response.arrayBuffer();
-          responseText = "";
+        } else if (
+          typeof details.onprogress === "function" &&
+          response.body &&
+          typeof response.body.getReader === "function" &&
+          typeof globalThis.TextDecoder === "function"
+        ) {
+          const reader = response.body.getReader();
+          const decoder = new globalThis.TextDecoder();
+          while (true) {
+            const chunk = await reader.read();
+            if (chunk.done) break;
+            responseText += decoder.decode(chunk.value, { stream: true });
+            details.onprogress({
+              status,
+              responseText,
+              readyState: 3,
+              finalUrl: response.url || details.url,
+            });
+          }
+          responseText += decoder.decode();
+          responseData = responseText;
         } else {
           responseText = await response.text();
           responseData = responseText;
@@ -111,11 +131,21 @@
             if (typeof details.ontimeout === "function") details.ontimeout(error);
             return;
           }
+          if (controller && controller.signal.aborted) {
+            if (typeof details.onabort === "function") details.onabort(error);
+            return;
+          }
           if (typeof details.onerror === "function") details.onerror(error);
         })
         .finally(() => {
           if (timeoutId != null) globalThis.clearTimeout(timeoutId);
         });
+
+      return {
+        abort() {
+          if (controller) controller.abort();
+        },
+      };
     };
   }
 
