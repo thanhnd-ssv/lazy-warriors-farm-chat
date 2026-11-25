@@ -71,7 +71,7 @@
   const MIN_NICKNAME_LENGTH = 2;
   const MAX_NICKNAME_LENGTH = 12;
   const MESSAGE_COOLDOWN_MS = 1_500;
-  const MESSAGE_POLL_INTERVAL_MS = 3_000;
+  const MESSAGE_POLL_INTERVAL_MS = 500;
   const AUTH_TOKEN_REFRESH_BUFFER_MS = 60_000;
   const AUTH_SIGN_UP_URL =
     `https://identitytoolkit.googleapis.com/v1/accounts:signUp?key=${FIREBASE_CONFIG.apiKey}`;
@@ -1507,7 +1507,7 @@
       if (!messagePolling || !membership || !user) return;
       try {
         await fetchMessages();
-        connectionLabel.textContent = "Đã kết nối · làm mới mỗi 3 giây";
+        connectionLabel.textContent = "Đã kết nối · làm mới mỗi 0,5 giây";
         if (lastMessagePollError) {
           setNotice(chatNotice, "");
           lastMessagePollError = null;
@@ -1534,7 +1534,7 @@
         if (!membership || !user) await requestConnection();
         if (!membership || !user) return;
         await fetchMessages();
-        connectionLabel.textContent = "Đã kết nối · làm mới mỗi 3 giây";
+        connectionLabel.textContent = "Đã kết nối · làm mới mỗi 0,5 giây";
         setNotice(chatNotice, "");
         lastMessagePollError = null;
         if (isChatVisible()) startMessageListener();
@@ -1552,7 +1552,7 @@
     function startMessageListener() {
       if (!membership || !user || messagePolling) return;
       messagePolling = true;
-      connectionLabel.textContent = "Đã kết nối · làm mới mỗi 3 giây";
+      connectionLabel.textContent = "Đã kết nối · làm mới mỗi 0,5 giây";
       void pollMessages();
     }
 

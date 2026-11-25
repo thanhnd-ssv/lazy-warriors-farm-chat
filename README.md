@@ -31,6 +31,7 @@
 ## Sử dụng
 
 - Lần đầu: nhập **Nickname** (2–12 ký tự), **Mã mời hội**, chọn avatar (tùy chọn) rồi vào hội.
+- Tin nhắn tự làm mới theo chu kỳ 0,5 giây.
 - **Di chuyển icon:** giữ và kéo icon 💬 đến vị trí mong muốn (vị trí được lưu).
 - **Mở/đóng chat:** nhấn icon để mở (khung chat hiện mặc định ở góc dưới bên phải), nhấn đóng để quay lại và icon trả về vị trí đã đặt.
 - Sau khi cập nhật script, người dùng thường vẫn vào lại chat nếu phiên lưu còn hợp lệ.
