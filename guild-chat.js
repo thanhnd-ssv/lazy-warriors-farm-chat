@@ -71,9 +71,7 @@
   const MIN_NICKNAME_LENGTH = 2;
   const MAX_NICKNAME_LENGTH = 12;
   const MESSAGE_COOLDOWN_MS = 1_500;
-  const MESSAGE_POLL_INTERVAL_MS = 1_000;
-  const MESSAGE_STREAM_RETRY_DELAY_MS = 10_000;
-  const MESSAGE_STREAM_CONNECT_TIMEOUT_MS = 15_000;
+  const MESSAGE_POLL_INTERVAL_MS = 3_000;
   const AUTH_TOKEN_REFRESH_BUFFER_MS = 60_000;
   const AUTH_SIGN_UP_URL =
     `https://identitytoolkit.googleapis.com/v1/accounts:signUp?key=${FIREBASE_CONFIG.apiKey}`;
@@ -1128,15 +1126,6 @@
     let user = null;
     let membership = null;
     let messagePolling = false;
-    let pollingFallbackActive = false;
-    let messageStreamRequest = null;
-    let messageStreamGeneration = 0;
-    let messageStreamBuffer = "";
-    let messageStreamTextLength = 0;
-    let messageStreamMessages = {};
-    let messageStreamConnectTimer = null;
-    let messageStreamRetryTimer = null;
-    let messagePollTimer = null;
     let connectionPromise = null;
     let connectionAttempt = 0;
     let authSession = null;
@@ -1144,7 +1133,6 @@
     let idTokenExpiresAt = 0;
     let tokenRefreshPromise = null;
     let initialMessagesLoaded = false;
-    let lastMessageKey = null;
     let unreadCount = 0;
     let lastSentAt = 0;
     let toastTimer = null;
@@ -1413,9 +1401,6 @@
         return;
       }
 
-      if (lastMessageKey === null || key > lastMessageKey) {
-        lastMessageKey = key;
-      }
       if (renderedMessageKeys.has(key)) return;
       renderedMessageKeys.add(key);
 
@@ -1493,7 +1478,6 @@
     }
 
     let lastMessagePollError = null;
-    let lastMessageStreamError = null;
 
     async function fetchMessages() {
       const messages = await databaseGet(
@@ -1519,245 +1503,16 @@
       }
     }
 
-    async function fetchNewMessages() {
-      if (!initialMessagesLoaded) {
-        await fetchMessages();
-        return;
-      }
-
-      const query = {
-        orderBy: JSON.stringify("$key"),
-        limitToFirst: "50",
-      };
-      if (lastMessageKey !== null) {
-        query.startAt = JSON.stringify(lastMessageKey);
-      }
-      const messages = await databaseGet(
-        `guilds/${membership.guildId}/messages`,
-        query,
-      );
-      if (!messages || typeof messages !== "object" || Array.isArray(messages)) {
-        return;
-      }
-
-      const entries = Object.entries(messages).sort((first, second) => {
-        const firstTime = Number(first[1] && first[1].createdAt) || 0;
-        const secondTime = Number(second[1] && second[1].createdAt) || 0;
-        return firstTime - secondTime || first[0].localeCompare(second[0]);
-      });
-      for (const [key, message] of entries) {
-        appendMessage(key, message);
-      }
-    }
-
-    function setStreamMessageValue(path, value) {
-      const segments = path.split("/").filter(Boolean);
-      if (segments.length === 0) {
-        messageStreamMessages =
-          value && typeof value === "object" && !Array.isArray(value)
-            ? value
-            : {};
-        return;
-      }
-
-      let parent = messageStreamMessages;
-      for (const segment of segments.slice(0, -1)) {
-        if (
-          !parent[segment] ||
-          typeof parent[segment] !== "object" ||
-          Array.isArray(parent[segment])
-        ) {
-          parent[segment] = {};
-        }
-        parent = parent[segment];
-      }
-      const key = segments[segments.length - 1];
-      if (value === null) {
-        delete parent[key];
-      } else {
-        parent[key] = value;
-      }
-    }
-
-    function trimStreamMessages() {
-      const keys = Object.keys(messageStreamMessages).sort((first, second) => {
-        const firstTime =
-          Number(messageStreamMessages[first] && messageStreamMessages[first].createdAt) || 0;
-        const secondTime =
-          Number(messageStreamMessages[second] && messageStreamMessages[second].createdAt) || 0;
-        return firstTime - secondTime || first.localeCompare(second);
-      });
-      while (keys.length > MAX_HISTORY) {
-        delete messageStreamMessages[keys.shift()];
-      }
-    }
-
-    function appendStreamPayload(eventName, payload) {
-      if (!payload || typeof payload.path !== "string") {
-        throw new Error("Firebase gửi sự kiện realtime không hợp lệ.");
-      }
-
-      if (eventName === "put") {
-        setStreamMessageValue(payload.path, payload.data);
-        const firstSegment = payload.path.split("/").filter(Boolean)[0];
-        if (firstSegment) {
-          trimStreamMessages();
-          appendMessage(firstSegment, messageStreamMessages[firstSegment]);
-        } else {
-          trimStreamMessages();
-          const entries = Object.entries(messageStreamMessages).sort((first, second) => {
-            const firstTime = Number(first[1] && first[1].createdAt) || 0;
-            const secondTime = Number(second[1] && second[1].createdAt) || 0;
-            return firstTime - secondTime || first[0].localeCompare(second[0]);
-          });
-          for (const [key, message] of entries) {
-            appendMessage(key, message);
-          }
-          if (!initialMessagesLoaded) {
-            initialMessagesLoaded = true;
-            messagesList.scrollTop = messagesList.scrollHeight;
-          }
-        }
-        return;
-      }
-
-      if (
-        eventName !== "patch" ||
-        !payload.data ||
-        typeof payload.data !== "object" ||
-        Array.isArray(payload.data)
-      ) {
-        throw new Error(`Firebase gửi sự kiện realtime không hỗ trợ: ${eventName}.`);
-      }
-
-      const changedKeys = new Set();
-      for (const [path, value] of Object.entries(payload.data)) {
-        const fullPath = `${payload.path.replace(/\/$/, "")}/${path}`;
-        setStreamMessageValue(fullPath, value);
-        const firstSegment = fullPath.split("/").filter(Boolean)[0];
-        if (firstSegment) changedKeys.add(firstSegment);
-      }
-      trimStreamMessages();
-      for (const key of changedKeys) {
-        appendMessage(key, messageStreamMessages[key]);
-      }
-    }
-
-    function markMessageStreamConnected() {
-      if (messageStreamConnectTimer !== null) {
-        global.clearTimeout(messageStreamConnectTimer);
-        messageStreamConnectTimer = null;
-      }
-      if (messagePollTimer !== null) {
-        global.clearTimeout(messagePollTimer);
-        messagePollTimer = null;
-      }
-      pollingFallbackActive = false;
-      lastMessagePollError = null;
-      lastMessageStreamError = null;
-      setNotice(chatNotice, "");
-      connectionLabel.textContent = "Đã kết nối · realtime";
-    }
-
-    function processMessageStreamBlock(block, attempt) {
-      if (attempt !== messageStreamGeneration) return;
-      let eventName = "message";
-      const dataLines = [];
-      for (const line of block.split("\n")) {
-        if (line.startsWith("event:")) {
-          eventName = line.slice(6).trim();
-        } else if (line.startsWith("data:")) {
-          dataLines.push(line.slice(5).trimStart());
-        }
-      }
-      if (dataLines.length === 0) return;
-
-      let payload;
-      try {
-        payload = JSON.parse(dataLines.join("\n"));
-      } catch (error) {
-        failMessageStream(
-          attempt,
-          new Error("Không đọc được dữ liệu realtime từ Firebase."),
-        );
-        return;
-      }
-
-      if (eventName === "cancel" || eventName === "auth_revoked") {
-        const detail =
-          payload && (payload.data || payload.message || payload.path);
-        failMessageStream(
-          attempt,
-          new Error(
-            detail
-              ? `Firebase đã ngắt luồng realtime: ${detail}`
-              : "Firebase đã ngắt luồng realtime.",
-          ),
-          eventName === "auth_revoked",
-        );
-        return;
-      }
-      if (eventName === "keep-alive") {
-        markMessageStreamConnected();
-        return;
-      }
-
-      try {
-        appendStreamPayload(eventName, payload);
-        markMessageStreamConnected();
-      } catch (error) {
-        failMessageStream(attempt, error);
-      }
-    }
-
-    function handleMessageStreamProgress(event, attempt) {
-      if (attempt !== messageStreamGeneration) return;
-      if (event.status >= 400) {
-        failMessageStream(
-          attempt,
-          new Error(`Firebase realtime trả về HTTP ${event.status}.`),
-        );
-        return;
-      }
-
-      const responseText =
-        event.responseText ||
-        (event.target && event.target.responseText) ||
-        "";
-      if (responseText.length < messageStreamTextLength) {
-        messageStreamTextLength = 0;
-        messageStreamBuffer = "";
-      }
-      messageStreamBuffer += responseText.slice(messageStreamTextLength);
-      messageStreamTextLength = responseText.length;
-
-      const blocks = messageStreamBuffer
-        .replace(/\r\n/g, "\n")
-        .split("\n\n");
-      messageStreamBuffer = blocks.pop() || "";
-      for (const block of blocks) {
-        processMessageStreamBlock(block, attempt);
-        if (attempt !== messageStreamGeneration) return;
-      }
-    }
-
     async function pollMessages() {
-      if (!messagePolling || !pollingFallbackActive || !membership || !user) return;
+      if (!messagePolling || !membership || !user) return;
       try {
-        await fetchNewMessages();
-        if (!pollingFallbackActive) return;
-        connectionLabel.textContent = "Đã kết nối · dự phòng mỗi giây";
+        await fetchMessages();
+        connectionLabel.textContent = "Đã kết nối · làm mới mỗi 3 giây";
         if (lastMessagePollError) {
-          setNotice(
-            chatNotice,
-            lastMessageStreamError
-              ? "Realtime đang gián đoạn; tin nhắn được đồng bộ dự phòng mỗi giây."
-              : "",
-          );
+          setNotice(chatNotice, "");
           lastMessagePollError = null;
         }
       } catch (error) {
-        if (!pollingFallbackActive) return;
         connectionLabel.textContent = "Mất kết nối · sẽ thử lại...";
         setNotice(chatNotice, `Không tải được tin nhắn: ${error.message}`);
         if (lastMessagePollError !== error.message) {
@@ -1766,139 +1521,8 @@
         }
       }
 
-      if (messagePolling && pollingFallbackActive) {
-        messagePollTimer = global.setTimeout(() => {
-          messagePollTimer = null;
-          void pollMessages();
-        }, MESSAGE_POLL_INTERVAL_MS);
-      }
-    }
-
-    function startPollingFallback() {
-      if (!messagePolling || pollingFallbackActive) return;
-      pollingFallbackActive = true;
-      if (messagePollTimer !== null) {
-        global.clearTimeout(messagePollTimer);
-        messagePollTimer = null;
-      }
-      setNotice(
-        chatNotice,
-        "Realtime đang gián đoạn; đang chuyển sang đồng bộ dự phòng.",
-      );
-      void pollMessages();
-    }
-
-    function failMessageStream(attempt, error, forceRefresh) {
-      if (attempt !== messageStreamGeneration || !messagePolling) return;
-      messageStreamGeneration += 1;
-      if (messageStreamConnectTimer !== null) {
-        global.clearTimeout(messageStreamConnectTimer);
-        messageStreamConnectTimer = null;
-      }
-      const streamRequest = messageStreamRequest;
-      messageStreamRequest = null;
-      if (streamRequest && typeof streamRequest.abort === "function") {
-        streamRequest.abort();
-      }
-
-      if (lastMessageStreamError !== error.message) {
-        console.error(
-          "[Lazy Warriors Farm Chat] Realtime message stream failed.",
-          error,
-        );
-        lastMessageStreamError = error.message;
-      }
-      connectionLabel.textContent = "Đang dùng kết nối dự phòng...";
-      startPollingFallback();
-      if (messageStreamRetryTimer !== null) {
-        global.clearTimeout(messageStreamRetryTimer);
-      }
-      messageStreamRetryTimer = global.setTimeout(() => {
-        messageStreamRetryTimer = null;
-        void connectMessageStream(forceRefresh);
-      }, MESSAGE_STREAM_RETRY_DELAY_MS);
-    }
-
-    async function connectMessageStream(forceRefresh) {
-      if (!messagePolling || !membership || !user) return;
-      const attempt = ++messageStreamGeneration;
-      messageStreamBuffer = "";
-      messageStreamTextLength = 0;
-      connectionLabel.textContent = pollingFallbackActive
-        ? "Đang kết nối realtime · dùng dự phòng..."
-        : "Đang kết nối realtime...";
-
-      try {
-        const idToken = await refreshAuthToken(Boolean(forceRefresh));
-        if (attempt !== messageStreamGeneration || !messagePolling) return;
-
-        const parameters = new URLSearchParams({
-          orderBy: JSON.stringify("createdAt"),
-          limitToLast: String(MAX_HISTORY),
-          auth: idToken,
-        });
-        const path = `guilds/${membership.guildId}/messages`;
-        const encodedPath = path
-          .split("/")
-          .map((segment) => encodeURIComponent(segment))
-          .join("/");
-        const url =
-          `${FIREBASE_CONFIG.databaseURL}/${encodedPath}.json?${parameters.toString()}`;
-        messageStreamRequest = request({
-          method: "GET",
-          url,
-          timeout: 0,
-          headers: {
-            Accept: "text/event-stream",
-            "Cache-Control": "no-cache",
-          },
-          onprogress(event) {
-            handleMessageStreamProgress(event, attempt);
-          },
-          onload(response) {
-            if (attempt !== messageStreamGeneration) return;
-            if (response.status < 200 || response.status >= 300) {
-              failMessageStream(
-                attempt,
-                new Error(`Firebase realtime trả về HTTP ${response.status}.`),
-              );
-              return;
-            }
-            if (response.responseText) {
-              handleMessageStreamProgress(response, attempt);
-            }
-            failMessageStream(
-              attempt,
-              new Error("Luồng realtime đã đóng; đang kết nối lại."),
-            );
-          },
-          onerror() {
-            failMessageStream(
-              attempt,
-              new Error("Không thể kết nối luồng realtime của Firebase."),
-            );
-          },
-          ontimeout() {
-            failMessageStream(
-              attempt,
-              new Error("Kết nối realtime của Firebase đã quá thời gian chờ."),
-            );
-          },
-          onabort() {
-            failMessageStream(
-              attempt,
-              new Error("Kết nối realtime của Firebase đã bị ngắt."),
-            );
-          },
-        });
-        messageStreamConnectTimer = global.setTimeout(() => {
-          failMessageStream(
-            attempt,
-            new Error("Firebase không mở được luồng realtime kịp thời."),
-          );
-        }, MESSAGE_STREAM_CONNECT_TIMEOUT_MS);
-      } catch (error) {
-        failMessageStream(attempt, error);
+      if (messagePolling) {
+        global.setTimeout(() => void pollMessages(), MESSAGE_POLL_INTERVAL_MS);
       }
     }
 
@@ -1910,10 +1534,9 @@
         if (!membership || !user) await requestConnection();
         if (!membership || !user) return;
         await fetchMessages();
-        connectionLabel.textContent = "Đã kết nối · realtime";
+        connectionLabel.textContent = "Đã kết nối · làm mới mỗi 3 giây";
         setNotice(chatNotice, "");
         lastMessagePollError = null;
-        lastMessageStreamError = null;
         if (isChatVisible()) startMessageListener();
       } catch (error) {
         if (!chatView.hidden) {
@@ -1929,7 +1552,8 @@
     function startMessageListener() {
       if (!membership || !user || messagePolling) return;
       messagePolling = true;
-      void connectMessageStream(false);
+      connectionLabel.textContent = "Đã kết nối · làm mới mỗi 3 giây";
+      void pollMessages();
     }
 
     async function signIn() {
@@ -2072,8 +1696,8 @@
         );
         return;
       }
-      if (!/^[A-Z0-9-]{16,64}$/.test(inviteCode)) {
-        setNotice(joinNotice, "Mã hội phải có từ 16 đến 64 ký tự chữ, số hoặc dấu gạch ngang.");
+      if (!/^[A-Z0-9]{16,64}$/.test(inviteCode)) {
+        setNotice(joinNotice, "Mã hội phải có từ 16 đến 64 ký tự chữ hoặc số.");
         return;
       }
       if (!user) {
